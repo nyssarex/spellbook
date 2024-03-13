@@ -15,8 +15,9 @@
     'tx_to',
     'tx_success',
     'tx_nonce',
-    'gas_price',
-    'priority_fee_per_gas',
+    'tx_gas_used',
+    'tx_gas_price',
+    'tx_priority_fee_per_gas',
     'contract_name',
     'protocol',
     'protocol_version',
@@ -29,7 +30,9 @@
     'call_gas_used',
     'call_output',
     'call_error',
+    'call_type',
     'remains',
+    'flags',
 ] %}
 {% set columns = columns | join(', ') %}
 
@@ -56,8 +59,8 @@ settlements as (
             , src_token_amount
             , dst_token_address
             , dst_token_amount
-            , false as fusion
             , cast(null as varbinary) as order_hash
+            , false as fusion
         from {{ ref('oneinch_' + blockchain + '_ar') }}
 
         union all
@@ -70,8 +73,8 @@ settlements as (
             , making_amount as src_token_amount
             , taker_asset as dst_token_address
             , taking_amount as dst_token_amount
-            , coalesce(fusion, false) as fusion
             , order_hash
+            , coalesce(fusion, false) as fusion
         from {{ ref('oneinch_' + blockchain + '_lop') }}
         left join settlements using(call_from)
         
@@ -89,8 +92,9 @@ select
     , tx_to
     , tx_success
     , tx_nonce
-    , gas_price
-    , priority_fee_per_gas
+    , tx_gas_used
+    , tx_gas_price
+    , tx_priority_fee_per_gas
     , contract_name
     , protocol
     , protocol_version
@@ -103,6 +107,7 @@ select
     , call_gas_used
     , call_output
     , call_error
+    , call_type
     , remains
     , maker
     , receiver
@@ -110,8 +115,8 @@ select
     , src_token_amount
     , dst_token_address
     , dst_token_amount
-    , fusion
     , order_hash
+    , map_concat(flags, map_from_entries(array[('fusion', fusion)])) as flags
 from calls
 
 {% endmacro %}

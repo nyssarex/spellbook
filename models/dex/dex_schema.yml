@@ -293,10 +293,14 @@ models:
       - *pool
       - *token0
       - *token1
+      - &tokens
+        name: tokens
+        description: "Tokens in the pool"
       - *creation_block_time
       - *creation_block_number
       - name: contract_address
         description: "Contract address used to create the pool"
+      - name: rn
 
   - name: dex_raw_pools
     meta:
@@ -319,6 +323,7 @@ models:
       - *pool
       - *token0
       - *token1
+      - *tokens
       - *creation_block_time
       - *creation_block_number
       - name: contract_address
@@ -526,11 +531,11 @@ models:
 
   - name: dex_info
     meta:
-      blockchain: ethereum, polygon, bnb, avalanche_c, gnosis, optimism, arbitrum, fantom, goerli
+      blockchain: ethereum, polygon, bnb, avalanche_c, gnosis, optimism, arbitrum, fantom, goerli, solana
       sector: dex
       contributors: hildobby
     config:
-      tags: ['dex', 'ethereum', 'polygon', 'bnb', 'avalanche_c', 'gnosis', 'optimism', 'arbitrum', 'fantom', 'goerli', 'info']
+      tags: ['dex', 'ethereum', 'polygon', 'bnb', 'avalanche_c', 'gnosis', 'optimism', 'arbitrum', 'fantom', 'goerli', 'solana', 'info']
     description: >
         DEXs info
     tests:

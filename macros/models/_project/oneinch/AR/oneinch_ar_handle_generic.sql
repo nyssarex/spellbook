@@ -5,7 +5,8 @@
         method,
         method_data,
         blockchain,
-        traces_cte
+        traces_cte,
+        start_date
     )
 %}
 
@@ -27,12 +28,13 @@ select
     , {{ method_data.get("dst_token_address", "null") }} as dst_token_address
     , {{ method_data.get("src_receiver", "null") }} as src_receiver
     , {{ method_data.get("dst_receiver", "null") }} as dst_receiver
-    , {{ method_data.get("src_amount", "null") }} as src_amount
-    , {{ method_data.get("dst_amount", "null") }} as dst_amount
-    , {{ method_data.get("dst_amount_min", "null") }} as dst_amount_min
+    , {{ method_data.get("src_token_amount", "null") }} as src_token_amount
+    , {{ method_data.get("dst_token_amount", "null") }} as dst_token_amount
+    , {{ method_data.get("dst_token_amount_min", "null") }} as dst_token_amount_min
     , call_gas_used
     , call_output
     , call_error
+    , call_type
     , null as ordinary
     , null as pools
     , remains
@@ -42,6 +44,8 @@ from (
     from {{ source('oneinch_' + blockchain, contract + '_call_' + method) }}
     {% if is_incremental() %}
         where {{ incremental_predicate('call_block_time') }}
+    {% else %}
+        where call_block_time >= timestamp '{{ start_date }}'
     {% endif %}
 )
 join traces_cte using(call_block_number, call_tx_hash, call_trace_address)

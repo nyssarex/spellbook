@@ -7,6 +7,8 @@ SELECT
   'element' as project,
   'v1' as project_version,
   evt_block_time AS block_time,
+  cast(date_trunc('day', evt_block_time) as date) as block_date,
+  cast(date_trunc('month', evt_block_time) as date) as block_month,
   evt_block_number AS block_number,
   'Buy' AS trade_category,
   'secondary' AS trade_type,
@@ -17,6 +19,7 @@ SELECT
   maker AS seller,
   cast(erc20TokenAmount AS UINT256) AS price_raw,
   CASE
+    WHEN erc20Token = 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee AND '{{blockchain}}' = 'zksync' THEN 0x000000000000000000000000000000000000800a
     WHEN erc20Token = 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee THEN 0x0000000000000000000000000000000000000000
     ELSE erc20Token
   END AS currency_contract,
@@ -39,6 +42,8 @@ SELECT
   'element' as project,
   'v1' as project_version,
   evt_block_time AS block_time,
+  cast(date_trunc('day', evt_block_time) as date) as block_date,
+  cast(date_trunc('month', evt_block_time) as date) as block_month,
   evt_block_number AS block_number,
   'Sell' AS trade_category,
   'secondary' AS trade_type,
@@ -49,6 +54,7 @@ SELECT
   taker AS seller,
   cast(erc20TokenAmount AS UINT256) AS price_raw,
   CASE
+    WHEN erc20Token = 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee AND '{{blockchain}}' = 'zksync' THEN 0x000000000000000000000000000000000000800a
     WHEN erc20Token = 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee THEN 0x0000000000000000000000000000000000000000
     ELSE erc20Token
   END AS currency_contract,
@@ -71,6 +77,8 @@ SELECT
   'element' as project,
   'v1' as project_version,
   evt_block_time AS block_time,
+  cast(date_trunc('day', evt_block_time) as date) as block_date,
+  cast(date_trunc('month', evt_block_time) as date) as block_month,
   evt_block_number AS block_number,
   'Buy' AS trade_category,
   'secondary' AS trade_type,
@@ -81,6 +89,7 @@ SELECT
   maker AS seller,
   cast(erc20FillAmount AS UINT256) AS price_raw,
   CASE
+    WHEN erc20Token = 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee AND '{{blockchain}}' = 'zksync' THEN 0x000000000000000000000000000000000000800a
     WHEN erc20Token = 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee THEN 0x0000000000000000000000000000000000000000
     ELSE erc20Token
   END AS currency_contract,
@@ -103,6 +112,8 @@ SELECT
   'element' as project,
   'v1' as project_version,
   evt_block_time AS block_time,
+  cast(date_trunc('day', evt_block_time) as date) as block_date,
+  cast(date_trunc('month', evt_block_time) as date) as block_month,
   evt_block_number AS block_number,
   'Buy' AS trade_category,
   'secondary' AS trade_type,
@@ -113,6 +124,7 @@ SELECT
   taker AS seller,
   cast(erc20FillAmount AS UINT256) AS price_raw,
   CASE
+    WHEN erc20Token = 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee AND '{{blockchain}}' = 'zksync' THEN 0x000000000000000000000000000000000000800a
     WHEN erc20Token = 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee THEN 0x0000000000000000000000000000000000000000
     ELSE erc20Token
   END AS currency_contract,

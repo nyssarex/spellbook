@@ -1,6 +1,6 @@
 {% macro 
     balancer_liquidity_macro(
-        blockchain
+        blockchain, version
     ) 
 %}
 
@@ -35,25 +35,34 @@ WITH pool_labels AS (
         HAVING sum(sample_size) > 3
     ),
 
+    dex_prices_2 AS(
+        SELECT 
+            day,
+            token,
+            price,
+            lag(price) OVER(PARTITION BY token ORDER BY day) AS previous_price
+        FROM dex_prices_1
+    ),    
+
     dex_prices AS (
         SELECT
-            *,
-            LEAD(DAY, 1, NOW()) OVER (
-                PARTITION BY token
-                ORDER BY
-                    DAY
-            ) AS day_of_next_change
-        FROM dex_prices_1
+            day,
+            token,
+            price,
+            LEAD(DAY, 1, NOW()) OVER (PARTITION BY token ORDER BY DAY) AS day_of_next_change
+        FROM dex_prices_2
+        WHERE (price < previous_price * 1e4 AND price > previous_price / 1e4)
     ),
 
     bpt_prices AS(
-        SELECT 
-            date_trunc('day', HOUR) AS day,
+        SELECT DISTINCT
+            day,
             contract_address AS token,
-            approx_percentile(median_price, 0.5) AS bpt_price
+            decimals,
+            bpt_price
         FROM {{ ref('balancer_bpt_prices') }}
         WHERE blockchain = '{{blockchain}}'
-        GROUP BY 1, 2
+        AND version = '{{version}}'
     ),
     
     eth_prices AS (
@@ -188,13 +197,13 @@ WITH pool_labels AS (
             b.token,
             symbol AS token_symbol,
             cumulative_amount as token_balance_raw,
-            cumulative_amount / POWER(10, COALESCE(t.decimals, p1.decimals)) AS token_balance,
-            cumulative_amount / POWER(10, COALESCE(t.decimals, p1.decimals)) * COALESCE(p1.price, p2.price, 0) AS protocol_liquidity_usd,
-            cumulative_amount / POWER(10, COALESCE(t.decimals, p1.decimals)) * COALESCE(p1.price, p2.price, p3.bpt_price) AS pool_liquidity_usd
+            cumulative_amount / POWER(10, COALESCE(t.decimals, p1.decimals, p3.decimals)) AS token_balance,
+            cumulative_amount / POWER(10, COALESCE(t.decimals, p1.decimals, p3.decimals)) * COALESCE(p1.price, p2.price, 0) AS protocol_liquidity_usd,
+            cumulative_amount / POWER(10, COALESCE(t.decimals, p1.decimals, p3.decimals)) * COALESCE(p1.price, p2.price, p3.bpt_price) AS pool_liquidity_usd
         FROM calendar c
         LEFT JOIN cumulative_balance b ON b.day <= c.day
         AND c.day < b.day_of_next_change
-        LEFT JOIN {{ ref('tokens_erc20') }} t ON t.contract_address = b.token
+        LEFT JOIN {{ source('tokens', 'erc20') }} t ON t.contract_address = b.token
         AND blockchain = '{{blockchain}}'
         LEFT JOIN prices p1 ON p1.day = b.day
         AND p1.token = b.token
@@ -202,7 +211,7 @@ WITH pool_labels AS (
         AND c.day < p2.day_of_next_change
         AND p2.token = b.token
         LEFT JOIN bpt_prices p3 ON p3.day = b.day 
-        AND p3.token = CAST(b.token as VARCHAR)
+        AND p3.token = b.token
         WHERE b.token != BYTEARRAY_SUBSTRING(b.pool_id, 1, 20)
     ),
 
@@ -225,6 +234,7 @@ WITH pool_labels AS (
         WHERE q.name IS NOT NULL 
         AND p.pool_type IN ('WP', 'WP2T') -- filters for weighted pools with pricing assets
         AND w.blockchain = '{{blockchain}}'
+        AND w.version = '{{version}}'        
         GROUP BY 1, 2, 3, 4
     ),
     
@@ -242,13 +252,12 @@ WITH pool_labels AS (
         c.pool_id,
         BYTEARRAY_SUBSTRING(c.pool_id, 1, 20) AS pool_address,
         p.pool_symbol,
-        '2' AS version,
+        '{{version}}' AS version,
         '{{blockchain}}' AS blockchain,
         c.token AS token_address,
         c.token_symbol,
         c.token_balance_raw,
         c.token_balance,
-        c.protocol_liquidity_usd as test_prot,
         COALESCE(b.protocol_liquidity * w.normalized_weight, c.protocol_liquidity_usd) AS protocol_liquidity_usd,
         COALESCE(b.protocol_liquidity * w.normalized_weight, c.protocol_liquidity_usd)/e.eth_price AS protocol_liquidity_eth,
         COALESCE(b.pool_liquidity * w.normalized_weight, c.pool_liquidity_usd) AS pool_liquidity_usd,
@@ -258,8 +267,8 @@ WITH pool_labels AS (
     AND c.pool_id = b.pool_id
     LEFT JOIN {{ ref('balancer_pools_tokens_weights') }} w ON b.pool_id = w.pool_id 
     AND w.blockchain = '{{blockchain}}'
+    AND w.version = '{{version}}'     
     AND w.token_address = c.token
     LEFT JOIN eth_prices e ON e.day = c.day 
     LEFT JOIN pool_labels p ON p.pool_id = BYTEARRAY_SUBSTRING(c.pool_id, 1, 20)
-
     {% endmacro %}

@@ -430,9 +430,11 @@ SELECT distinct
         max(affiliate_address) over (partition by all_tx.tx_hash) as affiliate_address,
         swap_flag,
         matcha_limit_order_flag,
-        CASE WHEN maker_token IN (0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c,0x55d398326f99059ff775485246999027b3197955,0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d,0x7083609fce4d1d8dc0c979aab8c869ea2c873402)
+        CASE WHEN maker_token IN (0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c,0x55d398326f99059ff775485246999027b3197955,
+                                0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d,0x7083609fce4d1d8dc0c979aab8c869ea2c873402,0x1af3f329e8be154074d8769d1ffa4ee058b1dbc3)
              THEN (all_tx.maker_token_amount_raw / pow(10, ms.decimals)) * mp.price
-             WHEN taker_token IN (0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c,0x55d398326f99059ff775485246999027b3197955,0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d,0x7083609fce4d1d8dc0c979aab8c869ea2c873402)
+             WHEN taker_token IN (0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c,0x55d398326f99059ff775485246999027b3197955,
+                                0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d,0x7083609fce4d1d8dc0c979aab8c869ea2c873402,0x1af3f329e8be154074d8769d1ffa4ee058b1dbc3)
              THEN (all_tx.taker_token_amount_raw / pow(10, ts.decimals)) * tp.price
              ELSE COALESCE((all_tx.maker_token_amount_raw / pow(10, ms.decimals)) * mp.price, (all_tx.taker_token_amount_raw / pow(10, ts.decimals)) * tp.price)
              END AS volume_usd,
@@ -470,12 +472,12 @@ LEFT JOIN {{ source('prices', 'usd') }} mp ON DATE_TRUNC('minute', all_tx.block_
     {% else %}
     AND mp.minute >= TIMESTAMP '{{zeroex_v3_start_date}}'
     {% endif %}
-LEFT OUTER JOIN {{ ref('tokens_erc20') }} ts  ON ts.contract_address = case
+LEFT OUTER JOIN {{ source('tokens', 'erc20') }} ts  ON ts.contract_address = case
                     WHEN all_tx.taker_token = 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee THEN 0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c
                     WHEN all_tx.taker_token = 0x0000000000000000000000000000000000000000 THEN 0x55d398326f99059ff775485246999027b3197955
                     ELSE all_tx.taker_token end
                 AND ts.blockchain = 'bnb'
-LEFT OUTER JOIN {{ ref('tokens_erc20') }} ms ON ms.contract_address =
+LEFT OUTER JOIN {{ source('tokens', 'erc20') }} ms ON ms.contract_address =
                 case 
                     WHEN all_tx.maker_token = 0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee THEN 0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c
                     WHEN all_tx.maker_token = 0x0000000000000000000000000000000000000000 THEN 0x55d398326f99059ff775485246999027b3197955
